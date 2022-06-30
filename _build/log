@@ -1,0 +1,4 @@
+# dune init project coverage
+# OCAMLPARAM: unset
+# Shared cache: disabled
+# Workspace root: /home/gg/stage/TestCoverage

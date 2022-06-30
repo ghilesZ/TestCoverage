@@ -1,0 +1,5 @@
+(executable
+ (public_name coverage)
+ (name main)
+ (promote (until-clean))
+ (libraries ocaml-migrate-parsetree coverage))
