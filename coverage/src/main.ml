@@ -63,15 +63,25 @@ let rec rewrite (expr:expression) : expression =
        Pexp_ifthenelse (rewrite condition, newbr_then, Some(newbr_else))
     (* TODO: en dessous *)
     | Pexp_construct (_, _) -> expr.pexp_desc
+    | Pexp_while (condition, action) -> 
+       let msg = Const.string "I went through do section" in
+       let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
+       let new_action = seq printmessage (rewrite action) in
+       Pexp_while(rewrite condition, new_action)
+    (* | Pexp_function (expression) ->
+       let msg = Const.string "I went through do section" in
+       let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
+       let new_action = seq printmessage (rewrite expression) in
+       Pexp_function (expression) *)
     | Pexp_match (_, _)
-    | Pexp_while (_, _)
+    | Pexp_function (_)
     | Pexp_try (_, _)
     | Pexp_fun (_, _, _, _)
     | Pexp_apply (_, _)
     | Pexp_let (_, _, _)
     | Pexp_tuple _
     | Pexp_sequence (_, _)
-    | Pexp_function (_)
+    
     | Pexp_variant (_, _)
     | Pexp_record (_, _)
     | Pexp_field (_, _)
