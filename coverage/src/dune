@@ -1,0 +1,13 @@
+(library
+  (public_name ppx_cover)
+  (name ppx_cover)
+  (wrapped false)
+  (kind ppx_rewriter)
+  (modules :standard \ Rewriter)
+  (libraries ocaml-migrate-parsetree)
+)
+
+(executable
+  (name rewriter)
+  (modules Rewriter)
+  (libraries ppx_cover ppxlib))
