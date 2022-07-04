@@ -4,6 +4,7 @@
   (wrapped false)
   (kind ppx_rewriter)
   (modules :standard \ Rewriter)
+  (ppx_runtime_libraries cover_runtime)
   (libraries ocaml-migrate-parsetree)
 )
 

@@ -1,4 +1,4 @@
-let counters : (Location.t, int) Hashtbl.t = Hashtbl.create 97
+let counters : (string, int) Hashtbl.t = Hashtbl.create 97
 
 let increment loc =
   match Hashtbl.find_opt counters loc with

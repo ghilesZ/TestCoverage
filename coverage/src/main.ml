@@ -25,6 +25,8 @@ let current_loc = ref Location.none
 
 let update_loc l = current_loc := l
 
+let string_ str = Exp.constant (Const.string str)
+
 (* same as mkloc but with optional argument; default is Location.none*)
 let def_loc ?loc s =
   let loc = match loc with None -> !current_loc | Some loc -> loc in
@@ -64,9 +66,11 @@ let rec rewrite (expr:expression) : expression =
     (* TODO: en dessous *)
     | Pexp_construct (_, _) -> expr.pexp_desc
     | Pexp_while (condition, action) ->
-       let msg = Const.string "I went through do section" in
-       let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
-       let new_action = seq printmessage (rewrite action) in
+       let msg = string_ "I went through do section" in
+       let compiled_location = Format.asprintf "%a" Location.print_loc expr.pexp_loc in
+       let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
+       let _printmessage = apply_nolbl_s "print_endline" [ msg] in
+       let new_action = seq incr_message (rewrite action) in
        Pexp_while(rewrite condition, new_action)
     (* | Pexp_function (case) ->
        let msg = Const.string "I went through %s" Parsetree.case.pc_lhs.pattern_desc in
@@ -102,9 +106,29 @@ let rec rewrite (expr:expression) : expression =
         * in Pexp_match (rewrite expression, trace 1 case_list) *)
        Pexp_match (rewrite expression,List.mapi tracecase case_list)
 
+    | Pexp_try (expression, case_list) ->
+      let tracecase cpt case =
+        let str = Format.asprintf "I went through case number %i" cpt in
+        let msg = Const.string str in
+        let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
+       {case with pc_rhs = seq printmessage (rewrite case.pc_rhs)} in
+
+      Pexp_try (rewrite expression, List.mapi tracecase case_list)
+
+
+    | Pexp_fun (label, ex, pattern, expression) ->
+
+
+      let msg = Const.string "I went through do section" in
+       let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
+       let new_expression = seq printmessage (rewrite expression) in
+
+
+      
+      
+      Pexp_fun (label, ex, pattern, new_expression)
     | Pexp_function (_)
-    | Pexp_try (_, _)
-    | Pexp_fun (_, _, _, _)
+
     | Pexp_apply (_, _)
     | Pexp_let (_, _, _)
     | Pexp_tuple _

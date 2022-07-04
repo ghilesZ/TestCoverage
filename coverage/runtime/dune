@@ -1,5 +1,4 @@
 (library
  (public_name cover_runtime)
  (name cover_runtime)
- (libraries  ocaml-migrate-parsetree)
 )
