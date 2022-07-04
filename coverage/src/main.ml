@@ -68,12 +68,26 @@ let rec rewrite (expr:expression) : expression =
        let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
        let new_action = seq printmessage (rewrite action) in
        Pexp_while(rewrite condition, new_action)
-    (* | Pexp_function (expression) ->
-       let msg = Const.string "I went through do section" in
+    (* | Pexp_function (case) ->
+       let msg = Const.string "I went through %s" Parsetree.case.pc_lhs.pattern_desc in
        let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
-       let new_action = seq printmessage (rewrite expression) in
-       Pexp_function (expression) *)
-    | Pexp_match (_, _)
+       let new_case = seq printmessage (rewrite case) in
+       Pexp_function (new_case) *)
+    | Pexp_match (expression, case_list) ->
+      let l = List.length case_list in
+      let new_caselist = [] in
+      let cpt = ref 0 in
+      while !cpt <= l
+      do 
+      cpt := !cpt+1;
+      let msg = Const.string "I went through case n°"  in
+      let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
+      let new_case = seq printmessage (rewrite (List.hd case_list).pc_rhs) in
+        new_case :: new_caselist
+    done;
+      Pexp_match (rewrite expression, new_caselist)
+
+
     | Pexp_function (_)
     | Pexp_try (_, _)
     | Pexp_fun (_, _, _, _)
