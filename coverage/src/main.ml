@@ -63,7 +63,7 @@ let rec rewrite (expr:expression) : expression =
        Pexp_ifthenelse (rewrite condition, newbr_then, Some(newbr_else))
     (* TODO: en dessous *)
     | Pexp_construct (_, _) -> expr.pexp_desc
-    | Pexp_while (condition, action) -> 
+    | Pexp_while (condition, action) ->
        let msg = Const.string "I went through do section" in
        let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
        let new_action = seq printmessage (rewrite action) in
@@ -74,19 +74,33 @@ let rec rewrite (expr:expression) : expression =
        let new_case = seq printmessage (rewrite case) in
        Pexp_function (new_case) *)
     | Pexp_match (expression, case_list) ->
-      let l = List.length case_list in
-      let new_caselist = [] in
-      let cpt = ref 0 in
-      while !cpt <= l
-      do 
-      cpt := !cpt+1;
-      let msg = Const.string "I went through case n°"  in
-      let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
-      let new_case = seq printmessage (rewrite (List.hd case_list).pc_rhs) in
-        new_case :: new_caselist
-    done;
-      Pexp_match (rewrite expression, new_caselist)
+      (* let l = List.length case_list in
+       * let cpt = ref 0 in
+       * let reflist = ref [] in
+       * while !cpt < l
+       * do
+       *   let str = Format.asprintf "I went through case number %i" !cpt in
+       *   let msg = Const.string str in
+       *   let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
+       *   let fst = List.nth case_list !cpt in
+       *   let new_case = {fst with pc_rhs = seq printmessage (rewrite fst.pc_rhs)} in
+       *   reflist := !reflist @ [new_case];
+       *   cpt := !cpt+1;
+       * done;
+       * Pexp_match (rewrite expression, !reflist) *)
+       let tracecase cpt case =
+          let str = Format.asprintf "I went through case number %i" cpt in
+          let msg = Const.string str in
+          let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
+         {case with pc_rhs = seq printmessage (rewrite case.pc_rhs)}
 
+       in
+       (* let rec trace idx cases =
+        *   match cases with
+        *   | [] -> []
+        *   | h::t -> (tracecase idx h)::(trace (idx+1) t)
+        * in Pexp_match (rewrite expression, trace 1 case_list) *)
+       Pexp_match (rewrite expression,List.mapi tracecase case_list)
 
     | Pexp_function (_)
     | Pexp_try (_, _)
@@ -95,7 +109,7 @@ let rec rewrite (expr:expression) : expression =
     | Pexp_let (_, _, _)
     | Pexp_tuple _
     | Pexp_sequence (_, _)
-    
+
     | Pexp_variant (_, _)
     | Pexp_record (_, _)
     | Pexp_field (_, _)
