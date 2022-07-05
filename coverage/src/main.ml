@@ -56,22 +56,20 @@ let rec rewrite (expr:expression) : expression =
     | Pexp_ifthenelse (condition, branch_then, None) ->
        Pexp_ifthenelse (rewrite condition, rewrite branch_then, None)
     | Pexp_ifthenelse (condition, br_then, Some(br_else)) ->
-       let msg = Const.string "I went through then branch" in
-       let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
-       let newbr_then = seq printmessage (rewrite br_then) in
-       let msg = Const.string "I went through else branch" in
-       let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
-       let newbr_else = seq printmessage (rewrite br_else) in
-       Pexp_ifthenelse (rewrite condition, newbr_then, Some(newbr_else))
+       let compiled_location = Format.asprintf "%a" Location.print_loc  br_then.pexp_loc in
+       let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
+       let newbr_then = seq incr_message (rewrite br_then) in
+       let compiled_location = Format.asprintf "%a" Location.print_loc expr.pexp_loc in (* regarder pouruqoi ne fonctionne pas print_int br_else.Lexing.position.pos_lnum *)
+       let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
+       let newbr_else = seq incr_message (rewrite br_else) in
+       Pexp_ifthenelse (condition, newbr_then, Some(newbr_else))
     (* TODO: en dessous *)
     | Pexp_construct (_, _) -> expr.pexp_desc
     | Pexp_while (condition, action) ->
-       let msg = string_ "I went through do section" in
        let compiled_location = Format.asprintf "%a" Location.print_loc expr.pexp_loc in
        let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
-       let _printmessage = apply_nolbl_s "print_endline" [ msg] in
        let new_action = seq incr_message (rewrite action) in
-       Pexp_while(rewrite condition, new_action)
+       Pexp_while(condition, new_action)
     (* | Pexp_function (case) ->
        let msg = Const.string "I went through %s" Parsetree.case.pc_lhs.pattern_desc in
        let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
@@ -118,19 +116,32 @@ let rec rewrite (expr:expression) : expression =
 
     | Pexp_fun (label, ex, pattern, expression) ->
 
+      let compiled_location = Format.asprintf "%a" Location.print_loc expr.pexp_loc in
+      let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
+      let new_expression = seq incr_message (rewrite expression) in
 
-      let msg = Const.string "I went through do section" in
-       let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
-       let new_expression = seq printmessage (rewrite expression) in
-
-
-      
-      
       Pexp_fun (label, ex, pattern, new_expression)
-    | Pexp_function (_)
+
+    | Pexp_function (case_list) -> 
+
+      let tracecase _cpt case =
+      
+        let compiled_location = Format.asprintf "%a" Location.print_loc expr.pexp_loc in
+        let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
+         {case with pc_rhs = seq incr_message (rewrite case.pc_rhs)} in
+      
+    
+      Pexp_function(List.mapi tracecase case_list)
+    | Pexp_let (flag, arg_list, expression) -> 
+      let compiled_location = Format.asprintf "%a" Location.print_loc expr.pexp_loc in
+      let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
+      let new_expression = seq incr_message (rewrite expression) in
+
+      
+      
+      Pexp_let (flag, arg_list, new_expression)
 
     | Pexp_apply (_, _)
-    | Pexp_let (_, _, _)
     | Pexp_tuple _
     | Pexp_sequence (_, _)
 

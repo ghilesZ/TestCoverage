@@ -9,6 +9,8 @@ dir="testdir_$fbname"
 rm -rf "$dir"
 mkdir -p "$dir"
 dune exec src/rewriter.exe -- "$1" > "$dir/a.ml"
-echo "(executable (name a)(libraries cover_runtime)) " > "$dir/dune"
+echo "(env
+  (dev
+    (flags (:standard -w -32))))(executable (name a)(libraries cover_runtime)) " > "$dir/dune"
 dune build "$dir"
 cd "$dir"
