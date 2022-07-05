@@ -1,4 +1,3 @@
-let f () =
+ let x = 
 if true
-then 2
-else 3
+then 2           else 3

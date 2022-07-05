@@ -3,7 +3,7 @@ let x =
   if false
   then
     (Cover_runtime.increment
-       "File \"./examples/constant.ml\", line 2, characters 23-24";
+       "File \"./examples/constant.ml\", lines 2-3, characters 8-6";
      2)
   else
     (Cover_runtime.increment

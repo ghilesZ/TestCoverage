@@ -14,6 +14,8 @@ open Parsetree
 open Ast_mapper
 open Ast_helper
 open Asttypes
+open Location
+
 
 module Conv = Convert (OCaml_410) (OCaml_current)
 
@@ -56,18 +58,23 @@ let rec rewrite (expr:expression) : expression =
     | Pexp_ifthenelse (condition, branch_then, None) ->
        Pexp_ifthenelse (rewrite condition, rewrite branch_then, None)
     | Pexp_ifthenelse (condition, br_then, Some(br_else)) ->
-       let compiled_location = Format.asprintf "%a" Location.print_loc  br_then.pexp_loc in
+       let compiled_location1 = string_of_int  br_then.pexp_loc.loc_start.pos_lnum  in
+       let compiled_location2 = string_of_int  (br_then.pexp_loc.loc_start.pos_cnum - br_then.pexp_loc.loc_start.pos_bol)  in
+       let compiled_location = String.concat " "  ["line :";compiled_location1;" col :"; compiled_location2] in
        let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
-       let newbr_then = seq incr_message (rewrite br_then) in
-       let compiled_location = Format.asprintf "%a" Location.print_loc expr.pexp_loc in (* regarder pouruqoi ne fonctionne pas print_int br_else.Lexing.position.pos_lnum *)
+       let newbr_then =  seq incr_message  (rewrite br_then) in
+       let compiled_location1 = string_of_int  br_else.pexp_loc.loc_start.pos_lnum  in
+       let compiled_location2 = string_of_int  (br_else.pexp_loc.loc_start.pos_cnum - br_else.pexp_loc.loc_start.pos_bol)  in
+       let compiled_location = String.concat " "  ["line :";compiled_location1;" col :"; compiled_location2] in
        let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
        let newbr_else = seq incr_message (rewrite br_else) in
        Pexp_ifthenelse (condition, newbr_then, Some(newbr_else))
-    (* TODO: en dessous *)
     | Pexp_construct (_, _) -> expr.pexp_desc
     | Pexp_while (condition, action) ->
-       let compiled_location = Format.asprintf "%a" Location.print_loc expr.pexp_loc in
-       let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
+      let compiled_location1 = string_of_int  action.pexp_loc.loc_start.pos_lnum  in
+      let compiled_location2 = string_of_int  (action.pexp_loc.loc_start.pos_cnum - action.pexp_loc.loc_start.pos_bol)  in
+      let compiled_location = String.concat " "  ["line :";compiled_location1;" col :"; compiled_location2] in
+      let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
        let new_action = seq incr_message (rewrite action) in
        Pexp_while(condition, new_action)
     (* | Pexp_function (case) ->
@@ -102,7 +109,7 @@ let rec rewrite (expr:expression) : expression =
         *   | [] -> []
         *   | h::t -> (tracecase idx h)::(trace (idx+1) t)
         * in Pexp_match (rewrite expression, trace 1 case_list) *)
-       Pexp_match (rewrite expression,List.mapi tracecase case_list)
+       Pexp_match (expression,List.mapi tracecase case_list)
 
     | Pexp_try (expression, case_list) ->
       let tracecase cpt case =
@@ -116,11 +123,11 @@ let rec rewrite (expr:expression) : expression =
 
     | Pexp_fun (label, ex, pattern, expression) ->
 
-      let compiled_location = Format.asprintf "%a" Location.print_loc expr.pexp_loc in
+      (* let compiled_location = Format.asprintf "%a" Location.print_loc expr.pexp_loc in
       let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
-      let new_expression = seq incr_message (rewrite expression) in
+      let new_expression = seq incr_message (rewrite expression) in *)
 
-      Pexp_fun (label, ex, pattern, new_expression)
+      Pexp_fun (label, ex, pattern, expression)
 
     | Pexp_function (case_list) -> 
 
