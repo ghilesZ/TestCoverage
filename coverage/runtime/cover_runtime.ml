@@ -8,3 +8,9 @@ let increment loc =
 let print_covers () =
   Format.printf "Number of entries: %i\n" (Hashtbl.length counters);
   Hashtbl.iter (fun x y -> Format.printf "%s %d\n" x y) counters
+
+let visited loc =
+  try 
+    Hashtbl.find counters loc > 0
+  with
+  | Not_found -> false

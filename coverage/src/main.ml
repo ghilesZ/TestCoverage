@@ -50,6 +50,16 @@ let apply_nolbl_s s = apply_nolbl (exp_id s)
 let seq e1 e2 =
   Exp.sequence e1 e2
 
+let get_loc expr =
+  let loc_l = string_of_int  expr.pexp_loc.loc_start.pos_lnum in
+  let loc_c = string_of_int  (expr.pexp_loc.loc_start.pos_cnum - expr.pexp_loc.loc_start.pos_bol)  in
+  String.concat " "  ["line :";loc_l;" col :"; loc_c] ;;
+
+
+let get_mess sloc =
+  apply_nolbl_s "Cover_runtime.increment" [string_ sloc ];;
+
+
 let rec rewrite (expr:expression) : expression =
   let desc' =
     match expr.pexp_desc with
@@ -58,25 +68,31 @@ let rec rewrite (expr:expression) : expression =
     | Pexp_ifthenelse (condition, branch_then, None) ->
        Pexp_ifthenelse (rewrite condition, rewrite branch_then, None)
     | Pexp_ifthenelse (condition, br_then, Some(br_else)) ->
-       let compiled_location1 = string_of_int  br_then.pexp_loc.loc_start.pos_lnum  in
-       let compiled_location2 = string_of_int  (br_then.pexp_loc.loc_start.pos_cnum - br_then.pexp_loc.loc_start.pos_bol)  in
-       let compiled_location = String.concat " "  ["line :";compiled_location1;" col :"; compiled_location2] in
-       let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
-       let newbr_then =  seq incr_message  (rewrite br_then) in
-       let compiled_location1 = string_of_int  br_else.pexp_loc.loc_start.pos_lnum  in
-       let compiled_location2 = string_of_int  (br_else.pexp_loc.loc_start.pos_cnum - br_else.pexp_loc.loc_start.pos_bol)  in
-       let compiled_location = String.concat " "  ["line :";compiled_location1;" col :"; compiled_location2] in
-       let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
-       let newbr_else = seq incr_message (rewrite br_else) in
+
+    
+      (* let cov_abs  a b =
+      let cov_then () = 1.0 in
+      let cov_else () = 1.0 in
+        a *. cov_then ()  +. b *. cov_else () in
+      let str_cov = string_of_float (cov_abs 0.5 0.5) in
+      let incr_message2 = apply_nolbl_s "print_string" [string_ str_cov ] in *)
+
+  
+      let sloc_then = get_loc br_then in
+      let incr_message = get_mess sloc_then in
+      let newbr_then =  seq incr_message (rewrite br_then) in
+
+      let sloc_else = get_loc br_else in
+      let incr_message = get_mess sloc_else in
+      let newbr_else = seq incr_message (rewrite br_else) in
+
        Pexp_ifthenelse (condition, newbr_then, Some(newbr_else))
     | Pexp_construct (_, _) -> expr.pexp_desc
     | Pexp_while (condition, action) ->
-      let compiled_location1 = string_of_int  action.pexp_loc.loc_start.pos_lnum  in
-      let compiled_location2 = string_of_int  (action.pexp_loc.loc_start.pos_cnum - action.pexp_loc.loc_start.pos_bol)  in
-      let compiled_location = String.concat " "  ["line :";compiled_location1;" col :"; compiled_location2] in
-      let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
-       let new_action = seq incr_message (rewrite action) in
-       Pexp_while(condition, new_action)
+      let sloc_action = get_loc action in
+      let incr_message = get_mess sloc_action in
+      let new_action = seq incr_message (rewrite action) in
+      Pexp_while(condition, new_action)
     (* | Pexp_function (case) ->
        let msg = Const.string "I went through %s" Parsetree.case.pc_lhs.pattern_desc in
        let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
@@ -97,12 +113,13 @@ let rec rewrite (expr:expression) : expression =
        *   cpt := !cpt+1;
        * done;
        * Pexp_match (rewrite expression, !reflist) *)
-       let tracecase cpt case =
-          let str = Format.asprintf "I went through case number %i" cpt in
-          let msg = Const.string str in
-          let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
-         {case with pc_rhs = seq printmessage (rewrite case.pc_rhs)}
-
+       let tracecase _cpt case =
+        let compiled_location1 = string_of_int  case.pc_rhs.pexp_loc.loc_start.pos_lnum  in
+        let compiled_location2 = string_of_int  (case.pc_rhs.pexp_loc.loc_start.pos_cnum - case.pc_rhs.pexp_loc.loc_start.pos_bol)  in
+        let compiled_location = String.concat " "  ["line :";compiled_location1;" col :"; compiled_location2 ;"\n"] in
+        let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
+         {case with pc_rhs = seq incr_message (rewrite case.pc_rhs)}
+       
        in
        (* let rec trace idx cases =
         *   match cases with
@@ -112,11 +129,12 @@ let rec rewrite (expr:expression) : expression =
        Pexp_match (expression,List.mapi tracecase case_list)
 
     | Pexp_try (expression, case_list) ->
-      let tracecase cpt case =
-        let str = Format.asprintf "I went through case number %i" cpt in
-        let msg = Const.string str in
-        let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
-       {case with pc_rhs = seq printmessage (rewrite case.pc_rhs)} in
+      let tracecase _cpt case =
+        let compiled_location1 = string_of_int  case.pc_rhs.pexp_loc.loc_start.pos_lnum  in
+        let compiled_location2 = string_of_int  (case.pc_rhs.pexp_loc.loc_start.pos_cnum - case.pc_rhs.pexp_loc.loc_start.pos_bol)  in
+        let compiled_location = String.concat " "  ["line :";compiled_location1;" col :"; compiled_location2 ;"\n"] in
+        let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
+       {case with pc_rhs = seq incr_message (rewrite case.pc_rhs)} in
 
       Pexp_try (rewrite expression, List.mapi tracecase case_list)
 
@@ -131,24 +149,38 @@ let rec rewrite (expr:expression) : expression =
 
     | Pexp_function (case_list) -> 
 
-      let tracecase _cpt case =
+      let tracecase2 _cpt case =
       
-        let compiled_location = Format.asprintf "%a" Location.print_loc expr.pexp_loc in
+        let compiled_location1 = string_of_int  case.pc_rhs.pexp_loc.loc_start.pos_lnum  in
+        let compiled_location2 = string_of_int  (case.pc_rhs.pexp_loc.loc_start.pos_cnum - case.pc_rhs.pexp_loc.loc_start.pos_bol)  in
+        let compiled_location = String.concat " "  ["line :";compiled_location1;" col :"; compiled_location2 ;"\n"] in
         let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
          {case with pc_rhs = seq incr_message (rewrite case.pc_rhs)} in
       
     
-      Pexp_function(List.mapi tracecase case_list)
+      Pexp_function(List.mapi tracecase2 case_list)
     | Pexp_let (flag, arg_list, expression) -> 
-      let compiled_location = Format.asprintf "%a" Location.print_loc expr.pexp_loc in
-      let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
-      let new_expression = seq incr_message (rewrite expression) in
+        let compiled_location1 = string_of_int  expression.pexp_loc.loc_start.pos_lnum  in
+        let compiled_location2 = string_of_int  (expression.pexp_loc.loc_start.pos_cnum - expression.pexp_loc.loc_start.pos_bol)  in
+        let compiled_location = String.concat " "  ["line :";compiled_location1;" col :"; compiled_location2 ;"\n"] in
+        let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
+        let new_expression = seq incr_message (rewrite expression) in
 
       
       
       Pexp_let (flag, arg_list, new_expression)
 
-    | Pexp_apply (_, _)
+    | Pexp_apply (expression, arg_list) -> (* semble être en redondance avec pexp_function *)
+
+
+
+      (* let compiled_location1 = string_of_int  expression.pexp_loc.loc_start.pos_lnum  in
+      let compiled_location2 = string_of_int  (expression.pexp_loc.loc_start.pos_cnum - expression.pexp_loc.loc_start.pos_bol)  in
+      let compiled_location = String.concat " "  ["line :";compiled_location1;" col :"; compiled_location2 ;"\n"] in
+      let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
+      let new_expression = seq incr_message (rewrite expression) in *)
+
+      Pexp_apply (expression, arg_list)
     | Pexp_tuple _
     | Pexp_sequence (_, _)
 
