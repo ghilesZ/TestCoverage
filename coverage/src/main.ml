@@ -16,7 +16,6 @@ open Ast_helper
 open Asttypes
 open Location
 
-
 module Conv = Convert (OCaml_410) (OCaml_current)
 
 let print_expression fmt e =
@@ -68,106 +67,60 @@ let rec rewrite (expr:expression) : expression =
     | Pexp_ifthenelse (condition, branch_then, None) ->
        Pexp_ifthenelse (rewrite condition, rewrite branch_then, None)
     | Pexp_ifthenelse (condition, br_then, Some(br_else)) ->
-
-    
-      (* let cov_abs  a b =
+         (* let cov_abs  a b =
       let cov_then () = 1.0 in
       let cov_else () = 1.0 in
         a *. cov_then ()  +. b *. cov_else () in
       let str_cov = string_of_float (cov_abs 0.5 0.5) in
       let incr_message2 = apply_nolbl_s "print_string" [string_ str_cov ] in *)
-
-  
       let sloc_then = get_loc br_then in
       let incr_message = get_mess sloc_then in
       let newbr_then =  seq incr_message (rewrite br_then) in
-
       let sloc_else = get_loc br_else in
       let incr_message = get_mess sloc_else in
       let newbr_else = seq incr_message (rewrite br_else) in
+      Pexp_ifthenelse (condition, newbr_then, Some(newbr_else))
 
-       Pexp_ifthenelse (condition, newbr_then, Some(newbr_else))
     | Pexp_construct (_, _) -> expr.pexp_desc
+
     | Pexp_while (condition, action) ->
       let sloc_action = get_loc action in
       let incr_message = get_mess sloc_action in
       let new_action = seq incr_message (rewrite action) in
       Pexp_while(condition, new_action)
-    (* | Pexp_function (case) ->
-       let msg = Const.string "I went through %s" Parsetree.case.pc_lhs.pattern_desc in
-       let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
-       let new_case = seq printmessage (rewrite case) in
-       Pexp_function (new_case) *)
+   
     | Pexp_match (expression, case_list) ->
-      (* let l = List.length case_list in
-       * let cpt = ref 0 in
-       * let reflist = ref [] in
-       * while !cpt < l
-       * do
-       *   let str = Format.asprintf "I went through case number %i" !cpt in
-       *   let msg = Const.string str in
-       *   let printmessage = apply_nolbl_s "print_endline" [Exp.constant msg] in
-       *   let fst = List.nth case_list !cpt in
-       *   let new_case = {fst with pc_rhs = seq printmessage (rewrite fst.pc_rhs)} in
-       *   reflist := !reflist @ [new_case];
-       *   cpt := !cpt+1;
-       * done;
-       * Pexp_match (rewrite expression, !reflist) *)
-       let tracecase _cpt case =
-        let compiled_location1 = string_of_int  case.pc_rhs.pexp_loc.loc_start.pos_lnum  in
-        let compiled_location2 = string_of_int  (case.pc_rhs.pexp_loc.loc_start.pos_cnum - case.pc_rhs.pexp_loc.loc_start.pos_bol)  in
-        let compiled_location = String.concat " "  ["line :";compiled_location1;" col :"; compiled_location2 ;"\n"] in
-        let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
-         {case with pc_rhs = seq incr_message (rewrite case.pc_rhs)}
-       
-       in
-       (* let rec trace idx cases =
-        *   match cases with
-        *   | [] -> []
-        *   | h::t -> (tracecase idx h)::(trace (idx+1) t)
-        * in Pexp_match (rewrite expression, trace 1 case_list) *)
-       Pexp_match (expression,List.mapi tracecase case_list)
+      let tracecase _cpt case =
+        let sloc_case = get_loc case.pc_rhs in
+        let incr_message = get_mess sloc_case in
+         {case with pc_rhs = seq incr_message (rewrite case.pc_rhs)} in
+      Pexp_match (expression,List.mapi tracecase case_list)
 
     | Pexp_try (expression, case_list) ->
       let tracecase _cpt case =
-        let compiled_location1 = string_of_int  case.pc_rhs.pexp_loc.loc_start.pos_lnum  in
-        let compiled_location2 = string_of_int  (case.pc_rhs.pexp_loc.loc_start.pos_cnum - case.pc_rhs.pexp_loc.loc_start.pos_bol)  in
-        let compiled_location = String.concat " "  ["line :";compiled_location1;" col :"; compiled_location2 ;"\n"] in
-        let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
-       {case with pc_rhs = seq incr_message (rewrite case.pc_rhs)} in
-
+        let sloc_case = get_loc case.pc_rhs in
+        let incr_message = get_mess sloc_case in
+         {case with pc_rhs = seq incr_message (rewrite case.pc_rhs)} in
       Pexp_try (rewrite expression, List.mapi tracecase case_list)
 
 
     | Pexp_fun (label, ex, pattern, expression) ->
-
       (* let compiled_location = Format.asprintf "%a" Location.print_loc expr.pexp_loc in
       let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
       let new_expression = seq incr_message (rewrite expression) in *)
-
       Pexp_fun (label, ex, pattern, expression)
 
     | Pexp_function (case_list) -> 
-
-      let tracecase2 _cpt case =
-      
-        let compiled_location1 = string_of_int  case.pc_rhs.pexp_loc.loc_start.pos_lnum  in
-        let compiled_location2 = string_of_int  (case.pc_rhs.pexp_loc.loc_start.pos_cnum - case.pc_rhs.pexp_loc.loc_start.pos_bol)  in
-        let compiled_location = String.concat " "  ["line :";compiled_location1;" col :"; compiled_location2 ;"\n"] in
-        let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
+      let tracecase _cpt case =
+        let sloc_case = get_loc case.pc_rhs in
+        let incr_message = get_mess sloc_case in
          {case with pc_rhs = seq incr_message (rewrite case.pc_rhs)} in
-      
-    
-      Pexp_function(List.mapi tracecase2 case_list)
-    | Pexp_let (flag, arg_list, expression) -> 
-        let compiled_location1 = string_of_int  expression.pexp_loc.loc_start.pos_lnum  in
-        let compiled_location2 = string_of_int  (expression.pexp_loc.loc_start.pos_cnum - expression.pexp_loc.loc_start.pos_bol)  in
-        let compiled_location = String.concat " "  ["line :";compiled_location1;" col :"; compiled_location2 ;"\n"] in
-        let incr_message = apply_nolbl_s "Cover_runtime.increment" [string_ compiled_location ] in
-        let new_expression = seq incr_message (rewrite expression) in
+      Pexp_function(List.mapi tracecase case_list)
 
-      
-      
+    | Pexp_let (flag, arg_list, expression) -> 
+        let sloc_expr = get_loc expression in
+        let incr_message = get_mess sloc_expr in
+        let new_expression = seq incr_message (rewrite expression) in
       Pexp_let (flag, arg_list, new_expression)
 
     | Pexp_apply (expression, arg_list) -> (* semble être en redondance avec pexp_function *)
@@ -181,8 +134,16 @@ let rec rewrite (expr:expression) : expression =
       let new_expression = seq incr_message (rewrite expression) in *)
 
       Pexp_apply (expression, arg_list)
+    | Pexp_sequence (e1, e2) -> 
+      (* let sloc_e1 = get_loc e1 in
+      let incr_message = get_mess sloc_e1 in
+      let new_e1 =  seq incr_message (rewrite e1) in
+      let soloc_e2 = get_loc e2 in
+      let incr_message = get_mess soloc_e2 in
+      let new_e2 = seq incr_message (rewrite e2) in  *)
+      Pexp_sequence (rewrite e1, rewrite e2)
+
     | Pexp_tuple _
-    | Pexp_sequence (_, _)
 
     | Pexp_variant (_, _)
     | Pexp_record (_, _)
@@ -210,13 +171,79 @@ let rec rewrite (expr:expression) : expression =
   in
   {expr with pexp_desc=desc'}
 
+let float_ x =
+  Exp.constant(Pconst_float( (string_of_float x), None))
+
+
+
+let (+@) e1 e2 =
+apply_nolbl_s "+." [e1;e2]
+
+let ($@) e1 e2 =    (*erreur si je mets * ou x *)
+apply_nolbl_s "*." [e1;e2]
+
+let (/@) e1 e2 =
+apply_nolbl_s "/." [e1;e2]
+
+
+
+
+let  rec couverture expression = match expression.pexp_desc with
+ (* match vb.pvb_expr.pexp_desc with
+  | Pexp_ifthenelse (condition, br_then, Some(br_else)) -> 0.5 *. (Hashtbl.find_opt Cover_runtime.counters (get_loc br_then)) +. 0.5 *. (Hashtbl.find_opt cover_runtime.counters (get_loc br_else))
+  | Pexp_letop _ | Pexp_extension _ | Pexp_unreachable ->
+    Format.asprintf "%a: not implemented yet - skipping"
+      print_expression expr |> failwith *)
+
+  | Pexp_ifthenelse (_condition, br_then, Some(br_else)) -> (float_ 0.5 $@ couverture br_then $@ apply_nolbl_s "Cover_runtime.isVisited_f" [string_ (get_loc br_then)]
+  )+@ (float_ 0.5 $@ apply_nolbl_s "Cover_runtime.isVisited_f" [string_ (get_loc br_else)] $@ couverture br_else)
+  | Pexp_constant (_c)  -> float_ 1.0
+  | Pexp_sequence (e1, e2) -> (couverture e1 +@ couverture e2) /@ (float_ 2.0)
+   | _ ->float_ 1.0 
+  (* | _ ->  string_ "not implemented yet - skipping"  *)
+
+
+
+
+
+let get_name vb =
+  match vb.pvb_pat.ppat_desc with
+  | Ppat_var {txt;_} -> txt
+  | _ -> "arbitrary"
+
+let cover_function vb  =
+  let name = get_name vb in
+  let fun_cov =
+    Exp.fun_ Nolabel None
+      (Pat.construct (lid_loc "()") None)
+      (* (Exp.construct (lid_loc "()") None) *)
+      (couverture vb.pvb_expr)
+    
+  in let get_cov_vb = Vb.mk (Pat.var (def_loc ("__funcov_"^name))) fun_cov in
+  Str.value Nonrecursive [get_cov_vb] 
+
+
 (* actual mapper *)
 let mapper =
   let handle_bind _mapper (bind:value_binding) =
     {bind with pvb_expr = rewrite bind.pvb_expr}
   in
+  let handle_str mapper (str:structure) =
+    let rec aux acc str =
+      match str with
+      | [] ->  List.rev acc
+      | ({pstr_desc= Pstr_value (_, [pvb]); _} as h) :: tl ->
+         let get_cov = cover_function pvb in
+         let h' = mapper.structure_item mapper h in
+         aux ((get_cov::h' :: acc)) tl
+      | h :: tl ->
+          let h' = mapper.structure_item mapper h in
+          aux (h' :: acc) tl
+    in
+    aux [] str
+  in
   { default_mapper with
-    value_binding= handle_bind }
+    value_binding= handle_bind; structure=handle_str}
 
 let () =
   let open Migrate_parsetree in
