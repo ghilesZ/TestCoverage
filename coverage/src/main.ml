@@ -50,8 +50,8 @@ let seq e1 e2 =
   Exp.sequence e1 e2
 
 let get_loc expr =
-  let loc_l = string_of_int  expr.pexp_loc.loc_start.pos_lnum in
-  let loc_c = string_of_int  (expr.pexp_loc.loc_start.pos_cnum - expr.pexp_loc.loc_start.pos_bol)  in
+  let loc_l = string_of_int  expr.pexp_loc.loc_start.pos_lnum ^ "-" ^ string_of_int  expr.pexp_loc.loc_end.pos_lnum in
+  let loc_c = string_of_int  (expr.pexp_loc.loc_start.pos_cnum - expr.pexp_loc.loc_start.pos_bol)^ "-" ^ string_of_int  (expr.pexp_loc.loc_end.pos_cnum - expr.pexp_loc.loc_end.pos_bol) in
   String.concat " "  ["line :";loc_l;" col :"; loc_c] ;;
 
 
@@ -135,12 +135,6 @@ let rec rewrite (expr:expression) : expression =
 
       Pexp_apply (expression, arg_list)
     | Pexp_sequence (e1, e2) -> 
-      (* let sloc_e1 = get_loc e1 in
-      let incr_message = get_mess sloc_e1 in
-      let new_e1 =  seq incr_message (rewrite e1) in
-      let soloc_e2 = get_loc e2 in
-      let incr_message = get_mess soloc_e2 in
-      let new_e2 = seq incr_message (rewrite e2) in  *)
       Pexp_sequence (rewrite e1, rewrite e2)
 
     | Pexp_tuple _
@@ -185,22 +179,42 @@ apply_nolbl_s "*." [e1;e2]
 let (/@) e1 e2 =
 apply_nolbl_s "/." [e1;e2]
 
+let (=@) e1 e2 =
+apply_nolbl_s "=." [e1;e2]
 
+let case_to_exp case =
+  case.pc_rhs
+
+let visit_exp exp =  apply_nolbl_s "Cover_runtime.isVisited_f" [string_ (get_loc (exp))] 
+
+let prod_vexp loc exp = 
+    loc $@  exp
+
+    
 
 
 let  rec couverture expression = match expression.pexp_desc with
- (* match vb.pvb_expr.pexp_desc with
-  | Pexp_ifthenelse (condition, br_then, Some(br_else)) -> 0.5 *. (Hashtbl.find_opt Cover_runtime.counters (get_loc br_then)) +. 0.5 *. (Hashtbl.find_opt cover_runtime.counters (get_loc br_else))
-  | Pexp_letop _ | Pexp_extension _ | Pexp_unreachable ->
-    Format.asprintf "%a: not implemented yet - skipping"
-      print_expression expr |> failwith *)
+ 
 
   | Pexp_ifthenelse (_condition, br_then, Some(br_else)) -> (float_ 0.5 $@ couverture br_then $@ apply_nolbl_s "Cover_runtime.isVisited_f" [string_ (get_loc br_then)]
   )+@ (float_ 0.5 $@ apply_nolbl_s "Cover_runtime.isVisited_f" [string_ (get_loc br_else)] $@ couverture br_else)
   | Pexp_constant (_c)  -> float_ 1.0
   | Pexp_sequence (e1, e2) -> (couverture e1 +@ couverture e2) /@ (float_ 2.0)
-   | _ ->float_ 1.0 
-  (* | _ ->  string_ "not implemented yet - skipping"  *)
+  | Pexp_match  (_expression, case_list) -> (* par simplicité on considère que chaque branche pèse 1/nb de cas*)
+      let locs = List.map visit_exp (List.map case_to_exp case_list) in
+      let list_couv = List.map couverture (List.map case_to_exp case_list) in
+      let div_length exp =
+        exp /@ (float_ (float_of_int (List.length case_list))) in
+      let couv_quotient = List.map div_length list_couv in
+      let couv_quotient_visited = List.map2 prod_vexp locs couv_quotient in
+      let rec sum l  =
+          match l with
+          []->float_ 0.0
+          |h::t-> h +@ (sum t) in
+          sum couv_quotient_visited;
+    
+  | _ ->float_ 1.0  
+  (* | _ ->  string_ "not implemented yet - skipping"   *)  (* ne reconnait pas () et donc multiplie string et float*)
 
 
 
