@@ -1,0 +1,4 @@
+(library
+ (name arbogen)
+ (public_name arbogen)
+ (libraries grammar randtools tree frontend boltzmann))

@@ -1,0 +1,15 @@
+*~
+#*
+*#
+*.arb
+*.dot
+*.jpg
+*.install
+.merlin
+/*.txt
+/gmon.out
+
+/_build
+/lib
+/bin
+/doc
