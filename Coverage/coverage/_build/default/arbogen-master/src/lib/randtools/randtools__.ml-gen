@@ -1,0 +1,14 @@
+(** @canonical Randtools.OcamlRandom *)
+module OcamlRandom = Randtools__OcamlRandom
+
+
+(** @canonical Randtools.Randnull *)
+module Randnull = Randtools__Randnull
+
+
+(** @canonical Randtools.Randu *)
+module Randu = Randtools__Randu
+
+
+(** @canonical Randtools.Sig *)
+module Sig = Randtools__Sig

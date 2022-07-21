@@ -1,0 +1,3 @@
+(env
+  (dev
+    (flags (:standard -w -32))))(executable (name a)(libraries cover_runtime)) 

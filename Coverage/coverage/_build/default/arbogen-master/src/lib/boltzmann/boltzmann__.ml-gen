@@ -1,0 +1,6 @@
+(** @canonical Boltzmann.Oracle *)
+module Oracle = Boltzmann__Oracle
+
+
+(** @canonical Boltzmann.WeightedGrammar *)
+module WeightedGrammar = Boltzmann__WeightedGrammar

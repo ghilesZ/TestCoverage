@@ -1,0 +1,14 @@
+(** @canonical Frontend.Lexer *)
+module Lexer = Frontend__Lexer
+
+
+(** @canonical Frontend.Options *)
+module Options = Frontend__Options
+
+
+(** @canonical Frontend.ParseTree *)
+module ParseTree = Frontend__ParseTree
+
+
+(** @canonical Frontend.Parser *)
+module Parser = Frontend__Parser

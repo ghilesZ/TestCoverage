@@ -1,0 +1,6 @@
+(** @canonical Sicstus_proxy.Ghost *)
+module Ghost = Sicstus_proxy__Ghost
+
+
+(** @canonical Sicstus_proxy.Proxy *)
+module Proxy = Sicstus_proxy__Proxy

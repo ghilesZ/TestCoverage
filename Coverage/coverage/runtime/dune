@@ -1,0 +1,5 @@
+(library
+ (public_name testify_runtime)
+ (name testify_runtime)
+ (libraries sicstus_proxy qcheck arbogen)
+)
