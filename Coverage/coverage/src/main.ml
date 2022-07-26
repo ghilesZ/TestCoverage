@@ -274,22 +274,41 @@ let get_name vb =
   | _ -> "arbitrary"
 
 let cover_function vb  =
+
   let name = get_name vb in
+  
   let fun_cov =
     Exp.fun_ Nolabel None
       (Pat.construct (lid_loc "()") None)
       (* (Exp.construct (lid_loc "()") None) *)
-      (couverture  vb.pvb_expr)
-      
+      (couverture  vb.pvb_expr) in
     
-  in let get_cov_vb = Vb.mk (Pat.var (def_loc ("__funcov_"^name))) fun_cov in
+
+    
+   let get_cov_vb = Vb.mk (Pat.var (def_loc ("__funcov_"^name))) fun_cov in
   Str.value Nonrecursive [get_cov_vb] 
 
 
+  let   rewrite2 (expr:expression) : expression =
+  let desc' =
+
+  match expr.pexp_desc with
+(* match Pexp_ifthenelse((Exp.constant (Const.string  (string_of_bool true))), Exp.constant (Const.int 2),  None) with  *)
+(* | Pexp_ifthenelse (_a,_b, None)-> apply_nolbl_s "if" *)
+| (_) ->  (Exp.constant (Const.string "rien")).pexp_desc in
+(* | _ ->  Format.asprintf "%a: not implemented yet - skipping" 
+print_expression expr in *)
 (* actual mapper *)
+{expr with pexp_desc=desc'}
+
 let mapper =
   let handle_bind _mapper (bind:value_binding) =
     {bind with pvb_expr = rewrite bind.pvb_expr}
+    
+  
+  (* let handle_bind2 _mapper (bind:value_binding)  =
+    {bind with pvb_expr = rewrite2 bind.pvb_expr } *)
+    
   in
   let handle_str mapper (str:structure) =
     let rec aux acc str =
@@ -308,7 +327,16 @@ let mapper =
   { default_mapper with
     value_binding= handle_bind; structure=handle_str}
 
+
+ 
+
+
 let () =
   let open Migrate_parsetree in
-  Driver.register ~name:"ppx_cover" ~args:[] Versions.ocaml_410
-    (fun _config _cookies -> mapper) ; 
+  Driver.register ~name:"ppx_cover" ~args:[] Versions.ocaml_410 
+    (fun _config _cookies -> mapper) 
+    (* let a = Exp.constant(Pconst_integer ("", None)) *)
+
+    
+
+   
