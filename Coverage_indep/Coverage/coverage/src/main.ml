@@ -27,7 +27,6 @@ let current_loc = ref Location.none
 let update_loc l = current_loc := l
 
 let string_ str = Exp.constant (Const.string str)
-
 (* same as mkloc but with optional argument; default is Location.none*)
 let def_loc ?loc s =
   let loc = match loc with None -> !current_loc | Some loc -> loc in
@@ -44,7 +43,7 @@ let apply_nolbl f args =
   Exp.apply ~loc:!current_loc f (List.map (fun a -> (Nolabel, a)) args)
 
 (* same as apply_nolbl but function name is a string *)
-let  apply_nolbl_s (s)  = apply_nolbl (exp_id s)
+let  apply_nolbl_s s  = apply_nolbl (exp_id s)
 
 
 let seq e1 e2 =
@@ -65,7 +64,7 @@ let update_passage sloc branche =
   apply_nolbl_s "Testify_runtime.on_passage" [string_  sloc;string_ branche] 
 
 
-   
+  
 
 
 let rec rewrite (expr:expression) : expression =
@@ -88,17 +87,14 @@ let rec rewrite (expr:expression) : expression =
       let sloc_else = get_loc br_else  in
       let incr_message = get_mess sloc_else in
       let pass_message = update_passage sloc_else "else" in
-
       let newbr_else = seq pass_message (seq incr_message (rewrite br_else)) in
       Pexp_ifthenelse (condition, newbr_then, Some(newbr_else))
 
-    | Pexp_construct (_, _) -> expr.pexp_desc
 
     | Pexp_while (condition, action) ->
       let sloc_action = get_loc action  in
       let incr_message = get_mess sloc_action in
       let pass_message = update_passage sloc_action "do" in
-
       let new_action = seq pass_message(seq incr_message (rewrite action)) in
       Pexp_while(condition, new_action)
    
@@ -106,7 +102,6 @@ let rec rewrite (expr:expression) : expression =
       let tracecase _cpt case =
         let sloc_case = get_loc case.pc_rhs  in
         let pass_message = update_passage sloc_case "case match" in
-
         let incr_message = get_mess sloc_case in
          {case with pc_rhs = seq pass_message (seq incr_message (rewrite case.pc_rhs))} in
       Pexp_match (expression,List.mapi tracecase case_list)
@@ -133,11 +128,29 @@ let rec rewrite (expr:expression) : expression =
         let pass_message = update_passage sloc_expr "let" in
         let new_expression =seq pass_message ( seq incr_message (rewrite expression)) in
       Pexp_let (flag, arg_list, new_expression) 
-    | Pexp_apply (expression, arg_list) -> (* semble être en redondance avec pexp_function *)
-      Pexp_apply (expression, arg_list)
+    
     | Pexp_sequence (e1, e2) -> 
-      Pexp_sequence (rewrite e1, rewrite e2)
+      Pexp_sequence (rewrite e1, rewrite e2) 
+    | Pexp_apply (expression, arg_list) ->
+      if ((List.length arg_list) < 2)
+        then (Pexp_apply(expression, arg_list))
+      else
+        let _lab1,left_term = List.hd arg_list in
+        let _alb2,right_term = List.hd (List.tl arg_list) in  
+        let str_exp = Format.asprintf "%a" print_expression expression in
+        let str_or =  "(||)" in 
+        if (str_exp = str_or) 
+          then 
+            let new_exprdesc = Pexp_ifthenelse( rewrite left_term,  left_term, Some( right_term)) in
+            let new_expr = {expr with pexp_desc=new_exprdesc} in
+            (rewrite new_expr).pexp_desc   
+         else
+          let new_arg_list = [(Nolabel,rewrite left_term);(Nolabel, rewrite right_term)] in  
+          Pexp_apply(expression, new_arg_list)
+         
       | Pexp_function (a) (* on ne l'utilisera presque pas*) -> Pexp_function (a)
+          | Pexp_construct (_, _) -> expr.pexp_desc
+
       | Pexp_tuple a -> Pexp_tuple a
       | Pexp_variant (a, b) -> Pexp_variant (a, b)
       | Pexp_record (a, b) -> Pexp_record (a, b)
@@ -145,7 +158,7 @@ let rec rewrite (expr:expression) : expression =
       | Pexp_setfield (a, b, c) -> Pexp_setfield (a, b, c)
       | Pexp_array (a) -> Pexp_array (a)
       | Pexp_for (a, b, c, d, e) -> Pexp_for (a, b, c, d, e)
-      | Pexp_constraint (a, b) -> Pexp_constraint (a, b)
+      | Pexp_constraint (a, b) -> Pexp_constraint (rewrite a, b)
       | Pexp_coerce (a, b, c) -> Pexp_coerce (a, b, c)
       | Pexp_send (a, b) -> Pexp_send (a, b)
       | Pexp_new a -> Pexp_new a 
@@ -160,7 +173,7 @@ let rec rewrite (expr:expression) : expression =
       | Pexp_newtype (a, b) -> Pexp_newtype (a, b)
       | Pexp_pack a -> Pexp_pack a
       | Pexp_open (a, b) -> Pexp_open (a, b)
-      | Pexp_letop a -> Pexp_letop a | Pexp_extension b -> Pexp_extension b | Pexp_unreachable -> Pexp_unreachable
+      | Pexp_letop  a -> Pexp_letop a| Pexp_extension b -> Pexp_extension b | Pexp_unreachable -> Pexp_unreachable 
           (* Format.asprintf "%a: not implemented yet - skipping"
             print_expression expr |> failwith *)
   in
@@ -169,7 +182,7 @@ let rec rewrite (expr:expression) : expression =
 let float_ x =
   Exp.constant(Pconst_float( (string_of_float x), None))
 
-
+(* Because Ppx works on AST*)
 
 let ( +@ ) e1 e2 =
 apply_nolbl_s "+." [e1;e2]
@@ -192,7 +205,7 @@ let prod_vexp loc exp =
     loc *@  exp
 
 
-
+(* Coverage calculation*)
 
 let  rec couverture expression  = 
 match expression.pexp_desc with
