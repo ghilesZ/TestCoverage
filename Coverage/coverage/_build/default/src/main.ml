@@ -161,7 +161,12 @@ let rec rewrite (expr:expression) : expression =
       | Pexp_setfield (a, b, c) -> Pexp_setfield (a, b, c)
       | Pexp_array (a) -> Pexp_array (a)
       | Pexp_for (a, b, c, d, e) -> Pexp_for (a, b, c, d, e)
-      | Pexp_constraint (a, b) -> Pexp_constraint (rewrite a, b)
+      | Pexp_constraint (expression, b) -> 
+        let sloc_expr = get_loc expression in
+        let incr_message = get_mess sloc_expr in
+        let pass_message = update_passage sloc_expr "let" in
+        let new_expression =seq pass_message ( seq incr_message (rewrite expression)) in
+        Pexp_constraint (new_expression, b)
       | Pexp_coerce (a, b, c) -> Pexp_coerce (a, b, c)
       | Pexp_send (a, b) -> Pexp_send (a, b)
       | Pexp_new a -> Pexp_new a 
@@ -237,13 +242,20 @@ match expression.pexp_desc with
           []->float_ 0.0
           |h::t-> h +@ (sum t) in
           sum couv_quotient_visited;
-    (* | Pexp_let (flag, vb, expression) ->  *)
-
 
     | Pexp_fun(_label, _ex, _pattern, expression ) -> propagate expression  1.0
-    (* | Pexp_ifthenelse (condition, branch_then, None) ->   *)
+    | Pexp_apply(expression, arg_list) -> if ((List.length arg_list) < 2)
+      then float_ 1.0
+    else
+      let _lab1,left_term = List.hd arg_list in
+      let _alb2,right_term = List.hd (List.tl arg_list) in  
+      let str_exp = Format.asprintf "%a" print_expression expression in
+      let str_or =  "(||)" in 
+      if (str_exp = str_or) then
+        propagate left_term 0.5 +@ propagate right_term 0.5
+      else float_ 1.0
 
-    
+      |Pexp_constraint(a,_b) -> propagate a 1.0
   | _ ->float_ 1.0
 
   and propagate  exp weight  = ((visit_exp exp) *@ (couverture  exp)  *@ float_ weight  

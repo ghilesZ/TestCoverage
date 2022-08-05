@@ -2,7 +2,7 @@ type nat = ((int)[@satisfying fun x -> x >= 0])
 let abs (x : Int.t) = (if x >= 0 then x else - x : nat)
 let () =
   Testify_runtime.add_fun 0x2710 "abs"
-    "File \"./examples/testifytests/positive.ml\", line 3, characters 0-52"
+    "File \"./examples/testifytests/positive.ml\", lines 3-5, characters 0-16"
     (Testify_runtime.opt_print snd)
     (Testify_runtime.opt_gen
        (fun rs ->

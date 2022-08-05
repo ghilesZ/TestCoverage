@@ -6,4 +6,3 @@ let f x =
     | 2 -> "two"
     | _ -> "strictly less than 3; different from 1 and 2 "
   else "greater than 3"
-let () = Testify_runtime.run_test ()
